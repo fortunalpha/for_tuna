@@ -1,7 +1,9 @@
 import logging
-from typing import Optional, Literal 
-from datetime import datetime as dt
-from strategy import PROJECT_ROOT_PATH
+import schedule
+import time
+from typing import Literal 
+from datetime import datetime as dt, timedelta
+from strategy import STRATEGY_DIR_PATH
 from exchange.koreainvestment import KoreaInvestment
 from pprint import pprint
 
@@ -14,7 +16,7 @@ class DisparityArbitragy:
         self._max_cash = max_cash
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
-        file_handler = logging.FileHandler(f'{PROJECT_ROOT_PATH}/log/etf_disparity_{self._positive_etf_code}.log')
+        file_handler = logging.FileHandler(f'{STRATEGY_DIR_PATH}/log/etf_disparity_{self._positive_etf_code}.log')
         formatter = logging.Formatter(f"%(asctime)s [DisparityArbitragy] %(levelname)s: %(message)s")
         file_handler.setFormatter(formatter)
         self.logger.addHandler(file_handler)
@@ -158,3 +160,17 @@ inverse_size={inverse_order_size}, inverse_price={self.inverse_etf_price.current
 
     def _is_time_near_market_closing(self):
         return dt.strptime('15:00', '%H:%M').time() < dt.now().time() < dt.strptime('15:20', '%H:%M').time()
+
+if __name__ == '__main__':
+    # kodex nasdaq 100(H), kodex nasdaq 100 inverse
+    disparity_arb = DisparityArbitragy('304940', '409810', base_disparity=-0.15, min_cash=0, max_cash=2_000_000)
+    
+    start_time = dt.now().replace(hour=9, minute=0, second=0, microsecond=0)
+    end_time = dt.now().replace(hour=15, minute=20, second=0, microsecond=0)
+    current_time = start_time
+    while current_time <= end_time:
+        schedule.every().day.at(current_time.strftime("%H:%M")).do(disparity_arb.on_trading_iteration)
+        current_time += timedelta(minutes=10)
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
