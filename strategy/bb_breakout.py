@@ -1,15 +1,14 @@
-from dotenv import load_dotenv
 import os
 import pandas as pd
 import numpy as np
 import pandas_ta as ta
 import ccxt
-import logging
 import schedule
 import time
-from strategy import STRATEGY_DIR_PATH
+from dotenv import load_dotenv
+from util.logger import StrategyLogger
 
-class BollingerbandBreakout():
+class BollingerbandBreakout:
     def __init__(self, base, quote, prio, max_position_count=2, interval='4h', leverage=1):
         self.base = base
         self.quote = quote
@@ -18,14 +17,8 @@ class BollingerbandBreakout():
         self.interval = interval
         # self.execution_times = ['01:00', '05:00', '09:00', '13:00', '17:00', '21:00']
         self.leverage = leverage
-        self._logger = logging.getLogger(__name__)
-        self._logger.setLevel(logging.INFO)
-        file_handler = logging.FileHandler(f'{STRATEGY_DIR_PATH}/log/bb_breakout_{self.base}.log')
-        formatter = logging.Formatter(f"%(asctime)s [BollingerbandBreakout] %(levelname)s: %(message)s")
-        file_handler.setFormatter(formatter)
-        self._logger.addHandler(file_handler)
-
-        self._logger.info(f'Initialize bb_breakout strategy')
+        self._logger = StrategyLogger(f'{self.__class__.__name__}_{self.base}').logger
+        
         load_dotenv()
         api_key = os.getenv('BINANCE_ACCESS_KEY')
         api_secret = os.getenv('BINANCE_SECRET_KEY')
@@ -149,14 +142,14 @@ realized_pnl:{order["info"]["realizedPnl"]}')
         return None
 
 if __name__ == '__main__':
-    bb_breakout_4h = BollingerbandBreakout('BTC', 'USDT', prio=2, interval='4h', max_position_count=2, leverage=1)
+    bb_breakout_BTC = BollingerbandBreakout('BTC', 'USDT', prio=2, interval='4h', max_position_count=2, leverage=1)
 
-    schedule.every().day.at("01:00").do(bb_breakout_4h.on_trading_iteration)
-    schedule.every().day.at("05:00").do(bb_breakout_4h.on_trading_iteration)
-    schedule.every().day.at("09:00").do(bb_breakout_4h.on_trading_iteration)
-    schedule.every().day.at("13:00").do(bb_breakout_4h.on_trading_iteration)
-    schedule.every().day.at("17:00").do(bb_breakout_4h.on_trading_iteration)
-    schedule.every().day.at("21:00").do(bb_breakout_4h.on_trading_iteration)
+    schedule.every().day.at("01:00").do(bb_breakout_BTC.on_trading_iteration)
+    schedule.every().day.at("05:00").do(bb_breakout_BTC.on_trading_iteration)
+    schedule.every().day.at("09:00").do(bb_breakout_BTC.on_trading_iteration)
+    schedule.every().day.at("13:00").do(bb_breakout_BTC.on_trading_iteration)
+    schedule.every().day.at("17:00").do(bb_breakout_BTC.on_trading_iteration)
+    schedule.every().day.at("21:00").do(bb_breakout_BTC.on_trading_iteration)
 
     while True:
         schedule.run_pending()

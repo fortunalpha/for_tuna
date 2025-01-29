@@ -5,7 +5,7 @@ from typing import Literal
 from datetime import datetime as dt, timedelta
 from strategy import STRATEGY_DIR_PATH
 from exchange.koreainvestment import KoreaInvestment
-from pprint import pprint
+from util.logger import StrategyLogger
 
 class DisparityArbitragy:
     def __init__(self, positive_etf_code, inverse_etf_code, base_disparity, min_cash=0, max_cash=2_000_000) -> None:
@@ -14,12 +14,7 @@ class DisparityArbitragy:
         self._base_disparity = base_disparity
         self._min_cash = min_cash
         self._max_cash = max_cash
-        self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.INFO)
-        file_handler = logging.FileHandler(f'{STRATEGY_DIR_PATH}/log/etf_disparity_{self._positive_etf_code}.log')
-        formatter = logging.Formatter(f"%(asctime)s [DisparityArbitragy] %(levelname)s: %(message)s")
-        file_handler.setFormatter(formatter)
-        self.logger.addHandler(file_handler)
+        self._logger = StrategyLogger(f'{self.__class__.__name__}_{self.base}').logger
         self._broker = KoreaInvestment()
 
     def on_trading_iteration(self) -> None:
