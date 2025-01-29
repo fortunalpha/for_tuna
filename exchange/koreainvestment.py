@@ -5,7 +5,7 @@ from datetime import datetime as dt
 from dataclasses import dataclass 
 from typing import Optional
 from dotenv import load_dotenv
-from strategy import PROJECT_ROOT_PATH
+from exchange import PROJECT_ROOT_PATH
     
 class _Token():
     # TOKEN_LEGTH = 350
