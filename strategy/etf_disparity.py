@@ -1,9 +1,7 @@
-import logging
 import schedule
 import time
 from typing import Literal 
 from datetime import datetime as dt, timedelta
-from strategy import STRATEGY_DIR_PATH
 from exchange.koreainvestment import KoreaInvestment
 from util.logger import StrategyLogger
 
@@ -14,18 +12,17 @@ class DisparityArbitragy:
         self._base_disparity = base_disparity
         self._min_cash = min_cash
         self._max_cash = max_cash
-        self._logger = StrategyLogger(f'{self.__class__.__name__}_{self.base}').logger
+        self._logger = StrategyLogger(f'{self.__class__.__name__}_{positive_etf_code}').logger
         self._broker = KoreaInvestment()
 
     def on_trading_iteration(self) -> None:
-        self.logger.info(f'Start trading iteration: exchange=KoreaInvestment, \
+        self._logger.info(f'Start trading iteration: exchange=KoreaInvestment, \
 positive_etf: {self._positive_etf_code}, \
 inverse_etf={self._inverse_etf_code}, \
 base_disparity={self._base_disparity} \
 min_cash={self._min_cash}, \
 max_cash={self._max_cash}')
         
-        diff = 0
         positive_etf_position = self._broker.fetch_open_position(self._positive_etf_code)
         inverse_etf_position = self._broker.fetch_open_position(self._inverse_etf_code)
         
@@ -38,13 +35,13 @@ max_cash={self._max_cash}')
         positive_buy_avg_price, positive_buy_disparity_rate = self._calculate_average_disparity(positive_etf_orderbook, self.positive_etf_price.nav, 'buy')
         inverse_buy_avg_price, inverse_buy_disparity_rate = self._calculate_average_disparity(inverse_etf_orderbook, self.inverse_etf_price.nav, 'buy')
         buy_disparity_sum = positive_buy_disparity_rate + inverse_buy_disparity_rate
-        self.logger.info(f'current positive_avg_price: {positive_buy_avg_price}, inverse_avg_price: {inverse_buy_avg_price}, disparity_sum: {buy_disparity_sum}')
+        self._logger.info(f'current positive_avg_price: {positive_buy_avg_price}, inverse_avg_price: {inverse_buy_avg_price}, disparity_sum: {buy_disparity_sum}')
         
         # buy signal
         if positive_etf_position == None \
             and self._is_time_near_market_closing() \
             and buy_disparity_sum <= self._base_disparity:  
-                self.logger.info(f'buy signal is up')
+                self._logger.info(f'buy signal is up')
                 positive_order_size, inverse_order_size, _ = self._calculate_order_size(
                     positive_buy_avg_price,
                     inverse_buy_avg_price,
@@ -57,7 +54,7 @@ max_cash={self._max_cash}')
             _, inverse_sell_disparity_rate = self._calculate_average_disparity(inverse_etf_orderbook, self.inverse_etf_price.nav, 'sell')
             sell_disparity_sum = positive_sell_disparity_rate + inverse_sell_disparity_rate
             if sell_disparity_sum > 0:
-                self.logger.info(f'sell signal is up')
+                self._logger.info(f'sell signal is up')
                 result = self._submit_order_etf_pair(self._positive_etf_code, positive_etf_position.size, self._inverse_etf_code, inverse_etf_position.size, 'sell', 0, 'market')
             # reblancing positions
             elif self._is_time_near_market_closing():
@@ -68,10 +65,10 @@ max_cash={self._max_cash}')
                     min_cash=total_amount,
                     max_cash=self._max_cash)
                 if positive_order_size == 0:
-                    self.logger.error(f'Cannot buy more etf pair for rebalancing')
+                    self._logger.error(f'Cannot buy more etf pair for rebalancing')
                     result = self._submit_order_etf_pair(self._positive_etf_code, positive_etf_position.size, self._inverse_etf_code, inverse_etf_position.size, 'sell', 0, 'market')
                 else:
-                    self.logger.info(f'buy more etf pair for rebalancing')
+                    self._logger.info(f'buy more etf pair for rebalancing')
                     result = self._submit_order_etf_pair(
                         self._positive_etf_code, 
                         positive_order_size - positive_etf_position.size,
@@ -94,7 +91,7 @@ max_cash={self._max_cash}')
             "price": price,
             "type": order_type
         }
-        self.logger.info(f'Submit {side} market orders: pos_size={positive_order_size}, pos_price:{self.positive_etf_price.current_price} \
+        self._logger.info(f'Submit {side} market orders: pos_size={positive_order_size}, pos_price:{self.positive_etf_price.current_price} \
 inverse_size={inverse_order_size}, inverse_price={self.inverse_etf_price.current_price}')
         return self._broker.submit_order(positive_order), self._broker.submit_order(inverse_order)
 

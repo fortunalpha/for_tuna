@@ -1,6 +1,6 @@
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, time
 from logging.handlers import TimedRotatingFileHandler
 from strategy import STRATEGY_DIR_PATH
 
@@ -21,6 +21,7 @@ class StrategyLogger():
         if not os.path.exists(self.log_directory):
             os.makedirs(self.log_directory)
 
+# atTime Type error
 class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
     def __init__(self, filename, when="midnight", interval=1, backupCount=7, encoding="utf-8"):
         self.base_filename = filename

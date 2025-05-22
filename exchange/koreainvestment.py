@@ -102,7 +102,7 @@ class KoreaInvestment():
         url = self._url + '/oauth2/Approval'
         res = rq.post(url, json=body, headers=headers)
         if res.status_code != 200:
-            raise ConnectionRefusedError(f'{res.status_code} {res.reason}')
+            raise ConnectionRefusedError(f'{res.text}')
 
         return res.json()['approval_key']
 
@@ -117,8 +117,7 @@ class KoreaInvestment():
             OVRS_ICLD_YN='N'
         )
         res = rq.get(url, headers=headers, params=params)
-        if res.status_code != 200:
-            raise ConnectionRefusedError(f'{res.status_code} {res.reason}')
+        self._handle_server_response(res)
 
         data = res.json()
         if data['rt_cd'] != '0':
@@ -141,8 +140,7 @@ class KoreaInvestment():
             CTX_AREA_NK100=''
         )
         res = rq.get(url, headers=headers, params=params)
-        if res.status_code != 200:
-            raise ConnectionRefusedError(f'{res.status_code} {res.reason}')
+        self._handle_server_response(res)
         
         data = res.json()
         if data['rt_cd'] != '0':
@@ -176,8 +174,7 @@ class KoreaInvestment():
         url = self._url + '/uapi/domestic-stock/v1/trading/order-cash'
         res = rq.post(url, json=body, headers=headers)
         
-        if res.status_code != 200:
-            raise ConnectionRefusedError(f'{res.status_code} {res.reason}')
+        self._handle_server_response(res)
         
         data = res.json()
         if data['rt_cd'] != '0':
@@ -195,8 +192,7 @@ class KoreaInvestment():
             "FID_INPUT_ISCD": code
         }
         res = rq.get(url, headers=headers, params=params)
-        if res.status_code != 200:
-            raise ConnectionRefusedError(f'{res.status_code} {res.reason}')
+        self._handle_server_response(res)
         
         data = res.json()
         if data['rt_cd'] != '0':
@@ -207,7 +203,7 @@ class KoreaInvestment():
             
         return data['output1']
 
-    def fetch_etf_price(self, code) -> dict:
+    def fetch_etf_price(self, code) -> EtfPrice:
         headers = self._make_appkey_header("FHPST02400000")
         url = self._url + '/uapi/etfetn/v1/quotations/inquire-price'
         params = {
@@ -215,8 +211,7 @@ class KoreaInvestment():
             'fid_cond_mrkt_div_code': 'J'
         }
         res = rq.get(url, headers=headers, params=params)
-        if res.status_code != 200:
-            raise ConnectionRefusedError(f'{res.status_code} {res.reason}')
+        self._handle_server_response(res)
         
         data = res.json()
         if data['rt_cd'] != '0':
@@ -225,6 +220,15 @@ class KoreaInvestment():
         return EtfPrice(float(data['output']['stck_prpr']), 
                         float(data['output']['nav']),
                         float(data['output']['dprt']))
+
+    def _handle_server_response(self, res) -> None:
+        if res.status_code == 200:
+            pass
+        elif res.status_code == 500: # internal server error
+            self._token = self._get_auth_token()
+        else:
+            raise ConnectionRefusedError(f'{res.status_code} {res.reason}')
+        
 
     def _make_appkey_header(self, tr_id, **kwargs) -> dict :
         self._token = self._get_auth_token()
